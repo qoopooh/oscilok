@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Oscilok
+Comment=Cable Tester
+Icon=/home/user/git/oscilok/img/oscilok_logo.png
+Exec=python /home/user/git/oscilok/src/main.pyw
+Terminal=false
+Type=Application
+Categories=Utility

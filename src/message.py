@@ -6,20 +6,21 @@ from dataclasses import dataclass
 DEBUG_MESSAGE_MARKER = 0x43
 NORMAL_MESSAGE_MARKER = 0x53
 
+SAMPLE_RESPONSE_CMD = 0x82
+SAMPLE_LEN_SUBCMD   = 0x00
+SAMPLE_DATA_SUBCMD  = 0x01
+SAMPLE_SUM_SUBCMD   = 0x02
+SAMPLE_STOP_SUBCMD  = 0x03 # Errors or STOP mode
+
 NORMAL_SUBCOMMAND = [
     0x02, # Read sample data
-    0x82,
+    SAMPLE_RESPONSE_CMD,
     0x10, # Read file
     0x90,
     0x12, # Lock/unlock control panel, start/stop acquisition
     0x92,
     0xA0, # screenshot response
 ] # The command with subcommand
-
-SAMPLE_LEN_SUBCMD   = 0x00
-SAMPLE_DATA_SUBCMD  = 0x01
-SAMPLE_SUM_SUBCMD   = 0x02
-SAMPLE_STOP_SUBCMD  = 0x03 # Errors or STOP mode
 
 @dataclass
 class Message:
@@ -98,6 +99,9 @@ def _checksum(pkt: array) -> bool:
 
     pkt_len = pkt[1] + (pkt[2] << 8)
     chk_idx = pkt_len + 2
+    if chk_idx >= len(pkt):
+        return False
+
     chk_sum = pkt[chk_idx]
     data = pkt[:chk_idx]
 

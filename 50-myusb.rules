@@ -1,0 +1,3 @@
+# /etc/udev/rules.d/50-myusb.rules
+# sudo udevadm control -R
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="049f", ATTRS{idProduct}=="505a" GROUP="users", MODE="0666"

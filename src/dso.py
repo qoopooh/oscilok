@@ -4,6 +4,7 @@ https://elinux.org/Das_Oszi_Protocol
 """
 
 import argparse
+import os
 import time
 import warnings
 from array import array
@@ -26,8 +27,13 @@ PARSER.add_argument('-u', '--unlock', help='Unlock panel', action='store_true')
 PARSER.add_argument('-v', '--verbose', help='verbose', action='store_true')
 
 
+class SampleLostError(Exception):
+    """Sample request failed"""
+    channel: int = None
+
+
 class Dso:
-    """Oscillator device (USB)"""
+    """Oscilloscope device (USB)"""
 
     error: str
     _interface = 0
@@ -44,11 +50,14 @@ class Dso:
 
         cfg = self._dev.get_active_configuration()
         intf = cfg[(0, 0)]
-        self._outbound = intf[1]  # 0x81
-        self._inbound = intf[0]  # 0x2
+        self._outbound = intf[1]    # 0x81
+        self._inbound = intf[0]     # 0x2
 
-        if self._dev.is_kernel_driver_active(self._interface):
-            self._dev.detach_kernel_driver(self._interface)
+        if os.name == 'nt':
+            self._dev.set_configuration(cfg)    # Fixed bug on windows
+        else:
+            if self._dev.is_kernel_driver_active(self._interface):
+                self._dev.detach_kernel_driver(self._interface)
         usb.util.claim_interface(self._dev, self._interface)
 
 
@@ -94,25 +103,35 @@ class Dso:
             data=array('B', [chan]))
 
         self._write(send)
-        time.sleep(.04) # delay for acquisition (0.1 sec will get error)
+        time.sleep(.08) # delay for acquisition (0.1 sec will get error)
 
 
-    def get_sample(self) -> array:
+    def get_sample(self):
         """Get sample data"""
 
-        msg = self._read_expect(command=0x82)
+        msg = self._read_expect(command=message.SAMPLE_RESPONSE_CMD)
         if self._verbose:
             print(_read_sample_data_length(msg))
 
+        chan = -2
         data = array('B')
+        if not msg or not msg.data:
+            return data, chan
+
+        if msg.command == message.SAMPLE_RESPONSE_CMD:
+            chan = msg.data[0]
+
+        if msg.subcommand == message.SAMPLE_DATA_SUBCMD:
+            data.extend(msg.data[1:])
 
         while msg and msg.subcommand not in [
                 message.SAMPLE_SUM_SUBCMD, message.SAMPLE_STOP_SUBCMD]:
             msg = self._read()
-            if msg and msg.data:
+            if msg and msg.data and msg.subcommand == message.SAMPLE_DATA_SUBCMD:
                 data.extend(msg.data[1:])
+                chan = msg.data[0]
 
-        return data
+        return data, chan
 
 
     def is_available(self) -> bool:
@@ -161,7 +180,7 @@ All data bytes in the request are simply returned unchanged."""
         if self._verbose:
             print("echo {}".format(send))
         self._write(send)
-
+        time.sleep(.06)
 
     def buzzer(self, duration: int) -> None:
         """0x44 DSO Buzzer (debug)
@@ -214,13 +233,14 @@ To current time"""
     def close(self) -> None:
         """Release USB device"""
 
-        usb.util.release_interface(self._dev, self._interface)
+        if self._dev:
+            usb.util.release_interface(self._dev, self._interface)
 
 
     def _read_expect(self, command: int = None, data: array = None) -> message.Message:
 
         last_msg = None
-        try_count = 5
+        try_count = 2
         while try_count > 0:
             try_count -= 1
 
@@ -249,18 +269,15 @@ To current time"""
 
     def _read(self) -> message.Message:
 
-        pkt = array('B', [0]) * 0x8000
-        try_count = 2
-        while try_count > 0:
-            try:
-                self._dev.read(self._outbound.bEndpointAddress, pkt)
-                break
-            except usb.core.USBTimeoutError:
-                if self._verbose:
-                    print("timeout")
-                try_count -= 1
+        count = -1
+        pkt = array('B', [0]) * 0xF000
+        try:
+            count = self._dev.read(self._outbound.bEndpointAddress, pkt)
+        except usb.core.USBTimeoutError:
+            if self._verbose:
+                print("_read timeout")
         if self._verbose:
-            print("read {}".format(pkt[:pkt[1]+5]))
+            print("_read ({}): {}".format(count, pkt[:pkt[1]+5]))
 
         return message.build(pkt)
 
@@ -279,8 +296,12 @@ def _read_sample_data_length(msg: message.Message) -> str:
         return ""
 
     out = "[SAMPLE] "
-    if msg.command != 0x82:
+    if msg.command != message.SAMPLE_RESPONSE_CMD:
         out += "It's not 0x82 command {}".format(msg)
+        return out
+
+    if msg.subcommand != message.SAMPLE_LEN_SUBCMD:
+        out += "There is no sample data length"
         return out
 
     chan, length = _sample_data_length(msg.data)
@@ -329,7 +350,8 @@ if __name__ == '__main__':
             CHAN = ARGS.sample -1
             DEV.sample(CHAN)
             DEV.echo("{}".format(CHAN))
-            print(DEV.get_sample().tolist())
+            DATA, CHAN = DEV.get_sample()
+            print("CH:{} LEN:{} DAT:{}".format(CHAN + 1, len(DATA), DATA))
 
         if ARGS.set_time:
             DEV.set_system_time()
