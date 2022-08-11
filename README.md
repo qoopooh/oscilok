@@ -1,5 +1,20 @@
+![oscilok_logo](https://github.com/qoopooh/oscilok/blob/main/img/oscilok_logo.png?raw=true)
 # oscilok
 Processing data from oscilloscope
+
+
+## Criteria
+We will test the wire harness and measuring 2 signals:
+* Sine Wave
+* Square Wave
+
+The signals should have positive amplitude at the same time, otherwise test result will be failed.
+
+![ok](https://github.com/qoopooh/oscilok/blob/main/img/ok.png?raw=true) OK: Both have peaks in the same direction.
+
+![ng-opposite](https://github.com/qoopooh/oscilok/blob/main/img/ng-opposite.png?raw=true) NG: One is positive amplitude, the other is negative
+
+![ng-single](https://github.com/qoopooh/oscilok/blob/main/img/ng-single.png?raw=true) NG: Lost 1 signal
 
 
 ## Oscilloscope setup
