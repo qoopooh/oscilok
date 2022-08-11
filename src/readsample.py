@@ -101,7 +101,7 @@ class Cache:
         return data
 
 
-CACHE = Cache(True)
+CACHE = Cache(verbose=False)
 
 
 def read(channel: int, verbose=False) -> array:

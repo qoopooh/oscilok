@@ -26,6 +26,8 @@ PARSER.add_argument('-S', '--sample', help='Read sample from channel 1 or 2', ty
 PARSER.add_argument('-u', '--unlock', help='Unlock panel', action='store_true')
 PARSER.add_argument('-v', '--verbose', help='verbose', action='store_true')
 
+#os.environ['PYUSB_DEBUG'] = 'debug'
+#os.environ['PYUSB_LOG_FILENAME'] = os.path.join('log', 'usb.log')
 
 class SampleLostError(Exception):
     """Sample request failed"""
@@ -50,8 +52,8 @@ class Dso:
 
         cfg = self._dev.get_active_configuration()
         intf = cfg[(0, 0)]
-        self._outbound = intf[1]    # 0x81
-        self._inbound = intf[0]     # 0x2
+        self._outbound = intf[0]    # 0x02
+        self._inbound = intf[1]     # 0x81
 
         if os.name == 'nt':
             self._dev.set_configuration(cfg)    # Fixed bug on windows
@@ -124,7 +126,8 @@ class Dso:
         if msg.subcommand == message.SAMPLE_DATA_SUBCMD:
             data.extend(msg.data[1:])
 
-        while msg and msg.subcommand not in [
+        while msg and msg.command == message.SAMPLE_RESPONSE_CMD \
+                and msg.subcommand not in [
                 message.SAMPLE_SUM_SUBCMD, message.SAMPLE_STOP_SUBCMD]:
             msg = self._read()
             if msg and msg.data and msg.subcommand == message.SAMPLE_DATA_SUBCMD:
@@ -272,7 +275,7 @@ To current time"""
         count = -1
         pkt = array('B', [0]) * 0xF000
         try:
-            count = self._dev.read(self._outbound.bEndpointAddress, pkt)
+            count = self._dev.read(self._inbound.bEndpointAddress, pkt)
         except usb.core.USBTimeoutError:
             if self._verbose:
                 print("_read timeout")
@@ -287,7 +290,7 @@ To current time"""
         pkt = message.create_packet(msg)
         if self._verbose:
             print(" - writing {}".format(pkt))
-        self._dev.write(self._inbound.bEndpointAddress, pkt.tolist())
+        self._dev.write(self._outbound.bEndpointAddress, pkt.tolist())
 
 
 def _read_sample_data_length(msg: message.Message) -> str:

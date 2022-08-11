@@ -102,7 +102,7 @@ def get_wave_form(unsigned_data: array) -> Wave:
     top_area = top - margin
     bottom_area = bottom + margin
 
-    print("get_wave_form {}/{} / {}/{}".format(top, top_area, bottom_area, bottom))
+    #print("get_wave_form {}/{} / {}/{}".format(top, top_area, bottom_area, bottom))
 
     first_dat = data[0]
     dot = Dot(0, first_dat)

@@ -3,9 +3,11 @@
 """
 import gc
 import sys
+from datetime import datetime
+from os import path
 #from pprint import pprint
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox # submodules
 
 import usb
 
@@ -15,7 +17,8 @@ import waveform
 
 VERSION = "0.1.0"
 
-POLLING_TIME = 500
+POLLING_TIME = 500    # in millisecond
+OK_SKIP_TIME = 2500   # in millisecond
 BG_NG = 'red'
 BG_OK = 'green'
 BG_PROGRESS = 'white'
@@ -30,16 +33,16 @@ class Controller:
     polling = False
     _data: list = []
     _progress_idx = 0
+    _ng_count, _ok_count = 0, 0
+    _print_time = None
 
-    def toggle(self):
+    def toggle(self, _event=None):
         """Toggle reading"""
 
         if self.polling:
             self.polling = False
             ng_status.config(text="-", background="")
             start_button.config(text="Start")
-
-            print("gc.get_objects: {}".format(len(gc.get_objects())))
             return
 
         self.polling = True
@@ -56,6 +59,11 @@ class Controller:
         if not self.polling:
             return
 
+        #if self._should_hold_the_ok_result():
+            ## should remove this block when USB communication is more stable
+            #ng_status.after(POLLING_TIME, self.reading)
+            #return
+
         try:
             self._data = []
             for channel in [readsample.CH1, readsample.CH2]:
@@ -65,8 +73,8 @@ class Controller:
                     device_status.config(text="No CH{}".format(channel))
                     self._inprogress()
                     return
-                print('CH{} {} {} {}'.format(channel,
-                    len(data), data[0], data[int(len(data) / 2)]))
+                #print('CH{} {} {} {}'.format(channel,
+                    #len(data), data[0], data[int(len(data) / 2)]))
                 self._data.append(data)
             device_status.config(text="")
 
@@ -82,15 +90,16 @@ class Controller:
             return
 
         except usb.core.USBError as err:
-            print(err)
+            print(datetime.now() - start_time, err)
             try:
-                tk.messagebox.showerror("Device Error", "Please open the program again")
-            except:
+                messagebox.showerror("Device Error", "Please open the program again")
+                sys.exit()
+            except tk.TclError:
                 pass
-            sys.exit()
+            raise err
 
         if self._data[0] == self._data[1]:
-            #tk.messagebox.showerror("Data conflict", "Please re-open the program")
+            #messagebox.showerror("Data conflict", "Please re-open the program")
             #sys.exit()
             device_status.config(text="Data conflict")
             self._inprogress()
@@ -112,6 +121,22 @@ class Controller:
         signal_map[count]()
 
 
+    def _should_hold_the_ok_result(self) -> bool:
+        """Keep OK result without new data from oscilloscope"""
+
+        if self._ok_count < 1:
+            return False
+
+        available_period = int(OK_SKIP_TIME / POLLING_TIME)
+        if self._ok_count % available_period != 0:
+            self._ok_count += 1
+            device_status.config(
+                text="OK time: {} seconds".format(_polling_second_update(self._ok_count)))
+            return True
+
+        return False
+
+
     def _check_wave(self) -> None:
         """Analyze wave form"""
 
@@ -122,6 +147,12 @@ class Controller:
             ch_label[idx].config(text="ch{}: {} / {}".format(
                 idx+1, wave.typ, len(wave.data)))
             waves.append(wave)
+
+        if waves[0].typ == waves[1].typ:
+            # same shape
+            device_status.config(text="Same wave type")
+            self._inprogress()
+            return
 
         sine, square = None, None
         for wave in waves:
@@ -135,16 +166,21 @@ class Controller:
             elif wave.typ == waveform.WaveType.SQUARE:
                 square = wave.data
 
-        if waveform.is_top_sine_inside_top_square(sine, square):
-            # Good result
-            ng_status.config(text="OK", background=BG_OK)
-        else:
-            ng_status.config(text="NG", background=BG_NG)
+        if not waveform.is_top_sine_inside_top_square(sine, square):
+            self._ng()
+            return
+
+        # Good result
+        self._ok_count += 1
+        self._ng_count = 0
+        device_status.config(
+            text="OK time: {} seconds".format(_polling_second_update(self._ok_count)))
+        ng_status.config(text="OK", background=BG_OK)
         ng_status.after(POLLING_TIME, self.reading)
 
 
     def _inprogress(self) -> None:
-        # query new data
+        """query new data"""
         self._progress_idx += 1
         if self._progress_idx >= len(IN_PROGRESS_TEXT):
             self._progress_idx = 0
@@ -154,18 +190,38 @@ class Controller:
 
 
     def _ng(self) -> None:
-        # Failed result
+        """Failed result"""
+        self._ok_count = 0
+        self._ng_count += 1
+        device_status.config(
+            text="NG time: {} seconds".format(_polling_second_update(self._ng_count)))
         ng_status.config(text="NG", background=BG_NG)
         ng_status.after(POLLING_TIME, self.reading)
+
+
+def _polling_second_update(count: int) -> int:
+
+    _print_total_seconds()
+    out = count / (1000 / POLLING_TIME)
+    return int(out)
+
+
+def _print_total_seconds() -> None:
+
+    delta = datetime.now() - start_time
+    if delta.seconds % 15 == 0 and delta.microseconds < 500000:
+        print("Running: {} -> {}".format(delta, len(gc.get_objects())))
 
 
 ctrl = Controller()
 
 root = tk.Tk()
-root.title("Oscilok V{}".format(VERSION))
+root.title("Oscilok v{}".format(VERSION))
 root.minsize(300, 280)
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
+img = tk.Image('photo', file=path.join(path.dirname(__file__), '..', 'img', 'oscilok_logo.png'))
+root.tk.call('wm', 'iconphoto', root._w, img)
 
 ng_status = ttk.Label(root,
         text="-",
@@ -185,19 +241,19 @@ for index in range(2):
     label = ttk.Label(frame,
             font=(FONT, 8),
             text="ch{}: -".format(index + 1))
-#label.pack()
     label.grid(row=index, column=0, sticky=tk.W)
     ch_label.append(label)
 
 start_button = ttk.Button(root,
         text="Start",
         command=ctrl.toggle)
-#start_button.pack()
 start_button.grid(row=2, column=0, padx=20, pady=5,
         sticky=tk.N+tk.S+tk.W+tk.E)
+start_button.focus_set()
+root.bind("<Control-s>", ctrl.toggle)
 
-device_status = ttk.Label(root, text=VERSION)
-#device_status.pack(side=tk.BOTTOM)
+device_status = ttk.Label(root, text="Version {}".format(VERSION))
 device_status.grid(row=3, column=0, padx=10, pady=5, sticky=tk.N+tk.S+tk.W+tk.E)
 
+start_time = datetime.now()
 root.mainloop()
