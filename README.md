@@ -49,6 +49,10 @@ Let's start with [Python 3.7.6](https://www.python.org/ftp/python/3.7.6/python-3
 
 Use [Zadig](https://zadig.akeo.ie/) and select [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
 
+### Build binary
+TODO: Still cannot debug error after build
+> pyinstaller --onefile --noconfirm --noconsole --icon=img\favicon.ico --exclude-module _bootlocale --name oscilok src\main.pyw
+
 -----
 
 ## Linux setup
@@ -56,7 +60,10 @@ The new python 3.10 does not include tkinter, we have addtional for install GUI 
 > sudo apt install python3-tk
 
 You have to copy file 50-myusb.rules to ```/etc/udev/rules.d/```. After that please reload the rules.
-> sudo udevadm control -R
+```sh
+sudo udevadm control -R
+sudo udevadm trigger
+```
 
 Current user should be a member in ```plugdev``` group to access the USB device, if not please run the commands below:
 ```sh

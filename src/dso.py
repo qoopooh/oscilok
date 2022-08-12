@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 """DSO device
 https://elinux.org/Das_Oszi_Protocol
+001.009 049f:505a Linux-USB "CDC Subset" Device, or Itsy (experimental) (Compaq Computer Corp.)
+  Protocol: Vendor Specific Class
+  Configuration 1:
+    --------------
+    Interface 0 alternate setting 0 (available endpoints: [0x02(2,OUT) 0x81(1,IN)])
+      Vendor Specific Class
+      ep #2 OUT (address 0x02) bulk [512 bytes]
+      ep #1 IN (address 0x81) bulk [512 bytes]
 """
 
 import argparse
@@ -56,7 +64,7 @@ class Dso:
         self._inbound = intf[1]     # 0x81
 
         if os.name == 'nt':
-            self._dev.set_configuration(cfg)    # Fixed bug on windows
+            self._dev.set_configuration()
         else:
             if self._dev.is_kernel_driver_active(self._interface):
                 self._dev.detach_kernel_driver(self._interface)

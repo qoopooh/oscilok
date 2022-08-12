@@ -1,3 +1,4 @@
 # /etc/udev/rules.d/50-myusb.rules
 # sudo udevadm control -R
+# sudo udevadm trigger
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="049f", ATTRS{idProduct}=="505a", GROUP="plugdev", MODE="0666"

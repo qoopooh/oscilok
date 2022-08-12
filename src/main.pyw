@@ -11,6 +11,7 @@ from tkinter import ttk, messagebox # submodules
 
 import usb
 
+import dso
 import readsample
 import waveform
 
@@ -115,7 +116,8 @@ class Controller:
 
         signal_map = {
             0: self._inprogress,
-            1: self._ng,
+            #1: self._ng,
+            1: self._check_wave,
             2: self._check_wave,
         }
         signal_map[count]()
@@ -158,6 +160,8 @@ class Controller:
         for wave in waves:
             if wave.typ == waveform.WaveType.UNKNOWN:
                 # unknown wave form, get sample again
+                self._ng_count = 0
+                self._ok_count = 0
                 self._inprogress()
                 return
 
@@ -165,6 +169,10 @@ class Controller:
                 sine = wave.data
             elif wave.typ == waveform.WaveType.SQUARE:
                 square = wave.data
+
+        if not sine:
+            self._inprogress()
+            return
 
         if not waveform.is_top_sine_inside_top_square(sine, square):
             self._ng()
@@ -193,6 +201,11 @@ class Controller:
         """Failed result"""
         self._ok_count = 0
         self._ng_count += 1
+        if self._ng_count == 1:
+            dev = dso.Dso()
+            dev.buzzer(3)
+            dev.close()
+
         device_status.config(
             text="NG time: {} seconds".format(_polling_second_update(self._ng_count)))
         ng_status.config(text="NG", background=BG_NG)
@@ -220,8 +233,10 @@ root.title("Oscilok v{}".format(VERSION))
 root.minsize(300, 280)
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
-img = tk.Image('photo', file=path.join(path.dirname(__file__), '..', 'img', 'oscilok_logo.png'))
-root.tk.call('wm', 'iconphoto', root._w, img)
+if __file__.endswith("main.pyw"):
+    # It will not show icon when you build it to single file
+    img = tk.Image('photo', file=path.join(path.dirname(__file__), '..', 'img', 'oscilok_logo.png'))
+    root.tk.call('wm', 'iconphoto', root._w, img)
 
 ng_status = ttk.Label(root,
         text="-",

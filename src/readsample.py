@@ -119,7 +119,7 @@ def read(channel: int, verbose=False) -> array:
 
         #0x02 Read sample data
         dev.sample(chan)
-        dev.echo()
+        #dev.echo()
         data, chan = dev.get_sample()
 
         CACHE.set_cache(chan, data)

@@ -157,6 +157,9 @@ def _get_wave_type(out: list) -> Wave:
     if len(out) > 8:
         full_wave = _get_last_wave(out)
 
+        if _is_small_signal(full_wave):
+            return wave_type
+
         if _is_sine_wave(full_wave):
             wave_type = WaveType.SINE
 
@@ -164,6 +167,12 @@ def _get_wave_type(out: list) -> Wave:
             wave_type = WaveType.SQUARE
 
     return wave_type
+
+
+def _is_small_signal(dots: list) -> bool:
+        diff = abs(dots[0].val - dots[2].val)
+
+        return diff < 50
 
 
 def _is_sine_wave(dots: list) -> bool:
