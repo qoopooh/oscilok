@@ -16,7 +16,7 @@ import readsample
 import waveform
 
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 POLLING_TIME = 500    # in millisecond
 OK_SKIP_TIME = 2500   # in millisecond

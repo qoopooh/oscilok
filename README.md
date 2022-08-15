@@ -20,11 +20,6 @@ OK: Both have peaks in the same direction.
 NG: One is positive amplitude, the other is negative
 
 
-<img src="https://github.com/qoopooh/oscilok/blob/main/img/ng-single.png?raw=true" alt="ng single" width="360"/>
-
-NG: Lost 1 signal
-
-
 ## Oscilloscope setup
 <img src="https://github.com/qoopooh/oscilok/blob/main/img/16572956068466.jpg?raw=true" alt="ng single" width="300"/>
 
