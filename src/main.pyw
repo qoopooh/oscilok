@@ -3,6 +3,7 @@
 """
 import gc
 import sys
+import traceback
 from datetime import datetime
 from os import path
 #from pprint import pprint
@@ -12,14 +13,17 @@ from tkinter import ttk, messagebox # submodules
 import usb
 
 import dso
-import readsample
+import log
+import scope
 import waveform
+from waveform import WaveType
 
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
-POLLING_TIME = 500    # in millisecond
-OK_SKIP_TIME = 2500   # in millisecond
+MIN_VOLT_P2P = 2.5  # volts
+POLLING_TIME = 500  # in millisecond
+OK_SKIP_TIME = 2500 # in millisecond
 BG_NG = 'red'
 BG_OK = 'green'
 BG_PROGRESS = 'white'
@@ -60,38 +64,48 @@ class Controller:
         if not self.polling:
             return
 
-        #if self._should_hold_the_ok_result():
-            ## should remove this block when USB communication is more stable
-            #ng_status.after(POLLING_TIME, self.reading)
-            #return
-
         try:
-            self._data = []
-            for channel in [readsample.CH1, readsample.CH2]:
-                data = readsample.read(channel, verbose=False)
-                if len(data) < 3000:
-                    ch_label[channel-1].config(text="ch{}: -".format(channel))
-                    device_status.config(text="No CH{}".format(channel))
+            dev = scope.Scope(verbose=False)
+            self._data = dev.dual()
+            dev.close()
+
+            for chan, wave in enumerate(self._data):
+                if not wave.data:
+                    ch_label[chan].config(text="ch{}: -".format(chan+1))
+                    device_status.config(text="No CH{}".format(chan+1))
                     self._inprogress()
                     return
-                #print('CH{} {} {} {}'.format(channel,
-                    #len(data), data[0], data[int(len(data) / 2)]))
-                self._data.append(data)
+
             device_status.config(text="")
 
-        except readsample.OscilloscopeNotFoundError as err:
+        except scope.OscilloscopeNotFoundError as err:
+            _logger.warning(err)
             device_status.config(text=str(err))
             ng_status.config(text="-", background="")
             ng_status.after(POLLING_TIME + 2000, self.reading)
             return
 
-        except readsample.OscilloscopeError as err:
+        except scope.OscilloscopeError as err:
+            _logger.warning(err)
+            device_status.config(text=str(err))
+            ng_status.after(POLLING_TIME, self.reading)
+            return
+
+        except usb.core.USBTimeoutError as err:
+            #
+            # libusb0-dll:err [_usb_reap_async] timeout error
+            #
+            if dev:
+                dev.close()
+                dev = None
+            _logger.warning(traceback.format_exc())
+
             device_status.config(text=str(err))
             ng_status.after(POLLING_TIME, self.reading)
             return
 
         except usb.core.USBError as err:
-            print(datetime.now() - start_time, err)
+            _logger.error(err)
             try:
                 messagebox.showerror("Device Error", "Please open the program again")
                 sys.exit()
@@ -99,75 +113,34 @@ class Controller:
                 pass
             raise err
 
-        if self._data[0] == self._data[1]:
-            #messagebox.showerror("Data conflict", "Please re-open the program")
-            #sys.exit()
-            device_status.config(text="Data conflict")
-            self._inprogress()
-            return
-
-        count = 0
-        for idx, dat in enumerate(self._data):
-            # Get a signal or just straight line
-            signal = waveform.has_signal(dat[1000:2000])
-            ch_label[idx].config(text="ch{}: {}".format(idx+1, signal))
-            if signal:
-                count += 1
-
-        signal_map = {
-            0: self._inprogress,
-            #1: self._ng,
-            1: self._check_wave,
-            2: self._check_wave,
-        }
-        signal_map[count]()
-
-
-    def _should_hold_the_ok_result(self) -> bool:
-        """Keep OK result without new data from oscilloscope"""
-
-        if self._ok_count < 1:
-            return False
-
-        available_period = int(OK_SKIP_TIME / POLLING_TIME)
-        if self._ok_count % available_period != 0:
-            self._ok_count += 1
-            device_status.config(
-                text="OK time: {} seconds".format(_polling_second_update(self._ok_count)))
-            return True
-
-        return False
+        self._check_wave()
 
 
     def _check_wave(self) -> None:
         """Analyze wave form"""
 
-        waves = []
-        for idx, dat in enumerate(self._data):
+        for idx, wave in enumerate(self._data):
             # Show wave form info on screen
-            wave = waveform.get_wave_form(dat)
-            ch_label[idx].config(text="ch{}: {} / {}".format(
-                idx+1, wave.typ, len(wave.data)))
-            waves.append(wave)
-
-        if waves[0].typ == waves[1].typ:
-            # same shape
-            device_status.config(text="Same wave type")
-            self._inprogress()
-            return
+            ch_label[idx].config(text="ch{}:{} ({}) Vp-p: {} V".format(
+                idx+1, wave.typ, len(wave.data), wave.vpp))
 
         sine, square = None, None
-        for wave in waves:
-            if wave.typ == waveform.WaveType.UNKNOWN:
+        for wave in self._data:
+            if wave.typ == WaveType.UNKNOWN:
                 # unknown wave form, get sample again
                 self._ng_count = 0
                 self._ok_count = 0
                 self._inprogress()
                 return
 
-            if wave.typ == waveform.WaveType.SINE:
+            if wave.typ == WaveType.SINE:
                 sine = wave.data
-            elif wave.typ == waveform.WaveType.SQUARE:
+
+                if wave.vpp and wave.vpp < MIN_VOLT_P2P:
+                    self._ng()
+                    return
+
+            elif wave.typ == WaveType.SQUARE:
                 square = wave.data
 
         if not sine:
@@ -181,6 +154,10 @@ class Controller:
         # Good result
         self._ok_count += 1
         self._ng_count = 0
+        if self._ok_count == 1:
+            dev = dso.Dso()
+            dev.buzzer(1)
+            dev.close()
         device_status.config(
             text="OK time: {} seconds".format(_polling_second_update(self._ok_count)))
         ng_status.config(text="OK", background=BG_OK)
@@ -203,7 +180,7 @@ class Controller:
         self._ng_count += 1
         if self._ng_count == 1:
             dev = dso.Dso()
-            dev.buzzer(3)
+            dev.buzzer(10)
             dev.close()
 
         device_status.config(
@@ -223,10 +200,13 @@ def _print_total_seconds() -> None:
 
     delta = datetime.now() - start_time
     if delta.seconds % 15 == 0 and delta.microseconds < 500000:
-        print("Running: {} -> {}".format(delta, len(gc.get_objects())))
+        _logger.info("Running: %s -> %d", delta, len(gc.get_objects()))
+
+
 
 
 ctrl = Controller()
+_logger = log.setup_log('main')
 
 root = tk.Tk()
 root.title("Oscilok v{}".format(VERSION))

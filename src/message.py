@@ -102,11 +102,4 @@ def _checksum(pkt: array) -> bool:
     if chk_idx >= len(pkt):
         return False
 
-    chk_sum = pkt[chk_idx]
-    data = pkt[:chk_idx]
-
-    summary = 0
-    for dat in data:
-        summary += dat
-
-    return make_sum(data) == chk_sum
+    return make_sum(pkt[:chk_idx]) == pkt[chk_idx]

@@ -21,7 +21,7 @@ from datetime import datetime
 import usb
 
 import message
-
+import log
 
 PARSER = argparse.ArgumentParser('DSO')
 PARSER.add_argument('-b', '--buzzer', help='Buzzer n * 100ms', type=int)
@@ -99,6 +99,7 @@ class Dso:
 
         checksum = data.pop()
         if message.make_sum(data) != checksum:
+            _logger.error('File Checksum Error')
             raise ValueError("File Checksum Error ({} / {})".format(
                 checksum, len(data)))
 
@@ -263,8 +264,7 @@ To current time"""
             last_msg = msg
 
             if command and msg.command != command:
-                if self._verbose:
-                    print("ignored {}".format(msg))
+                _logger.info("ignored %s", msg)
                 continue
 
             if data and msg.data != data:
@@ -278,15 +278,24 @@ To current time"""
         return msg
 
 
-    def _read(self) -> message.Message:
+    def read_message(self, size: int=None) -> message.Message:
+        """Read a message"""
 
+        return self._read(size)
+
+
+    def _read(self, size=4096, t_out_ms=None) -> message.Message:
+        #
+        # code /home/berm/.local/lib/python3.10/site-packages/usb/
+        # https://stackoverflow.com/questions/26526217/why-cant-i-call-the-pyusb-function-dev-read-repeatedly-without-getting-a-time
+        # https://github.com/pyusb/pyusb/blob/master/usb/core.py#line=997
+        #
         count = -1
-        pkt = array('B', [0]) * 0xF000
+        pkt = array('B', [0]) * size
         try:
-            count = self._dev.read(self._inbound.bEndpointAddress, pkt)
+            count = self._dev.read(self._inbound.bEndpointAddress, pkt, t_out_ms)
         except usb.core.USBTimeoutError:
-            if self._verbose:
-                print("_read timeout")
+            _logger.info("_read timeout")
         if self._verbose:
             print("_read ({}): {}".format(count, pkt[:pkt[1]+5]))
 
@@ -298,7 +307,9 @@ To current time"""
         pkt = message.create_packet(msg)
         if self._verbose:
             print(" - writing {}".format(pkt))
-        self._dev.write(self._outbound.bEndpointAddress, pkt.tolist())
+        written = self._dev.write(self._outbound.bEndpointAddress, pkt.tolist())
+        if self._verbose:
+            print(" - writtend ({}): {}".format(written, msg))
 
 
 def _read_sample_data_length(msg: message.Message) -> str:
@@ -375,3 +386,5 @@ if __name__ == '__main__':
     else:
 
         print("DSO is not available")
+
+_logger = log.setup_log('dso')

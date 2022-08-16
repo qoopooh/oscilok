@@ -6,6 +6,7 @@ from enum import Enum
 
 PERCENT_TO_PEAK = 6
 
+
 class WaveType(Enum):
     """Wave type"""
 
@@ -26,10 +27,12 @@ class Peak(Enum):
 
 @dataclass
 class Wave:
-    """Recording data"""
+    """Wave object"""
 
-    data: list = None
+    data: list = None # Dot
     typ: WaveType = WaveType.UNKNOWN
+    p2p: int = 0
+    vpp: float = None
 
 
 @dataclass
@@ -97,6 +100,9 @@ def get_wave_form(unsigned_data: array) -> Wave:
     #print('signed_data', len(data), data[:30])
     data = _average(data)
     #print('avg_data', len(data), data[:30])
+    if len(data) == 0:
+        return Wave(None, WaveType.UNKNOWN)
+
     top, bottom = _get_top_bottom(data)
     margin = ((top - bottom) * PERCENT_TO_PEAK) / 100
     top_area = top - margin
@@ -111,54 +117,51 @@ def get_wave_form(unsigned_data: array) -> Wave:
     elif first_dat < bottom_area:
         dot.peak = Peak.BT_ST
 
-    out = [dot]
+    dots = [dot]
     for idx, val in enumerate(data):
 
-        prev_dot = out[-1]
+        prev_dot = dots[-1]
 
         if prev_dot.peak == Peak.TP_ST and val < top_area:
             dot = Dot(idx, val, Peak.TP_END)
-            out.append(dot)
+            dots.append(dot)
             continue
 
         if prev_dot.peak == Peak.TP_END and val < bottom_area:
             dot = Dot(idx, val, Peak.BT_ST)
-            out.append(dot)
+            dots.append(dot)
             continue
 
         if prev_dot.peak == Peak.BT_ST and val > bottom_area:
             dot = Dot(idx, val, Peak.BT_END)
-            out.append(dot)
+            dots.append(dot)
             continue
 
         if prev_dot.peak == Peak.BT_END and val > top_area:
             dot = Dot(idx, val, Peak.TP_ST)
-            out.append(dot)
+            dots.append(dot)
             continue
 
         if prev_dot.peak == Peak.UNKNOWN:
             if val > top_area:
                 dot = Dot(idx, val, Peak.TP_ST)
-                out.append(dot)
+                dots.append(dot)
                 continue
 
             if val < bottom_area:
                 dot = Dot(idx, val, Peak.BT_ST)
-                out.append(dot)
+                dots.append(dot)
                 continue
 
-    return Wave(out, _get_wave_type(out))
+    return Wave(dots, _get_wave_type(dots), _peak_to_peak(dots))
 
 
-def _get_wave_type(out: list) -> Wave:
+def _get_wave_type(dots: list) -> Wave:
     wave_type = WaveType.UNKNOWN
 
     # get sample full wave
-    if len(out) > 8:
-        full_wave = _get_last_wave(out)
-
-        if _is_small_signal(full_wave):
-            return wave_type
+    if len(dots) > 8 and not _is_small_signal(dots):
+        full_wave = _get_last_wave(dots)
 
         if _is_sine_wave(full_wave):
             wave_type = WaveType.SINE
@@ -170,9 +173,16 @@ def _get_wave_type(out: list) -> Wave:
 
 
 def _is_small_signal(dots: list) -> bool:
-        diff = abs(dots[0].val - dots[2].val)
 
-        return diff < 50
+    return _peak_to_peak(dots) < 40
+
+
+def _peak_to_peak(dots: list) -> int:
+
+    vals = [dot.val for dot in dots]
+    top, bottom = _get_top_bottom(vals)
+
+    return  abs(top - bottom)
 
 
 def _is_sine_wave(dots: list) -> bool:
