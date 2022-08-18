@@ -122,7 +122,7 @@ class Scope:
 
         # time.sleep(.1)
         # dev.lock_panel(False)
-        # msg = dev.read_message(10)
+        # msg = dev.read_message()
         # if not msg or msg.command != 0x92:
         #     _logger.warning("Wrong unlock resp: {}".format(msg))
 

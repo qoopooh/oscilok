@@ -278,10 +278,10 @@ To current time"""
         return msg
 
 
-    def read_message(self, size: int=None) -> message.Message:
+    def read_message(self) -> message.Message:
         """Read a message"""
 
-        return self._read(size)
+        return self._read()
 
 
     def _read(self, size=4096, t_out_ms=None) -> message.Message:

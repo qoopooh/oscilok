@@ -157,6 +157,7 @@ class Controller:
         if self._ok_count == 1:
             dev = dso.Dso()
             dev.buzzer(1)
+            dev.read_message()
             dev.close()
         device_status.config(
             text="OK time: {} seconds".format(_polling_second_update(self._ok_count)))
@@ -181,6 +182,7 @@ class Controller:
         if self._ng_count == 1:
             dev = dso.Dso()
             dev.buzzer(10)
+            dev.read_message()
             dev.close()
 
         device_status.config(
