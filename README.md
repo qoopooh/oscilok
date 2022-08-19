@@ -34,7 +34,7 @@ We use old machine to run the program with oscilloscope. So it is Windows 7 32 b
 
 To run the program, we gonna use old python 3.7.6 to make sure that all windows 7 machines can run it.
 
-Let's start with [Python 3.7.6](https://www.python.org/ftp/python/3.7.6/python-3.7.6.exe). After installation on the new fresh Win7 machine I got the error "The program can't start because api-ms-win-crt-runtime-l1-1-0.dll is missing". Then we have to install [Visual C++ Redistributable for Visual Studio 2015 (32-bit)](https://www.microsoft.com/en-us/download/details.aspx?id=48145) and you will get the python on Command Prompt.
+Let's start with [Python 3.7.6](https://www.python.org/ftp/python/3.7.6/python-3.7.6.exe) (or [64 bits](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe)). After installation on the new fresh Win7 machine I got the error "The program can't start because api-ms-win-crt-runtime-l1-1-0.dll is missing". Then we have to install [Visual C++ Redistributable for Visual Studio 2015 (32-bit)](https://www.microsoft.com/en-us/download/details.aspx?id=48145) and you will get the python on Command Prompt.
 <img src="https://raw.githubusercontent.com/qoopooh/oscilok/main/img/python376-on-win7.png" alt="Setup python on windows 7" width="360"/>
 
 ### Oscilloscope driver

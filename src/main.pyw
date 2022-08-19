@@ -5,7 +5,7 @@ import gc
 import sys
 import traceback
 from datetime import datetime
-from os import path
+from os import path, name
 #from pprint import pprint
 import tkinter as tk
 from tkinter import ttk, messagebox # submodules
@@ -19,7 +19,7 @@ import waveform
 from waveform import WaveType
 
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 MIN_VOLT_P2P = 2.5  # volts
 POLLING_TIME = 500  # in millisecond
@@ -79,7 +79,12 @@ class Controller:
             device_status.config(text="")
 
         except scope.OscilloscopeNotFoundError as err:
-            _logger.warning(err)
+            device_status.config(text=str(err))
+            ng_status.config(text="-", background="")
+            ng_status.after(POLLING_TIME + 2000, self.reading)
+            return
+
+        except dso.SampleLostError as err:
             device_status.config(text=str(err))
             ng_status.config(text="-", background="")
             ng_status.after(POLLING_TIME + 2000, self.reading)
@@ -154,15 +159,23 @@ class Controller:
         # Good result
         self._ok_count += 1
         self._ng_count = 0
-        if self._ok_count == 1:
-            dev = dso.Dso()
-            dev.buzzer(1)
-            dev.read_message()
-            dev.close()
+
         device_status.config(
             text="OK time: {} seconds".format(_polling_second_update(self._ok_count)))
         ng_status.config(text="OK", background=BG_OK)
         ng_status.after(POLLING_TIME, self.reading)
+
+        if self._ok_count == 1:
+
+            if name == 'nt':
+                import winsound
+                winsound.Beep(1000, 250)
+
+            else:
+                dev = dso.Dso()
+                dev.buzzer(1)
+                dev.read_message()
+                dev.close()
 
 
     def _inprogress(self) -> None:
@@ -179,16 +192,23 @@ class Controller:
         """Failed result"""
         self._ok_count = 0
         self._ng_count += 1
-        if self._ng_count == 1:
-            dev = dso.Dso()
-            dev.buzzer(10)
-            dev.read_message()
-            dev.close()
 
         device_status.config(
             text="NG time: {} seconds".format(_polling_second_update(self._ng_count)))
         ng_status.config(text="NG", background=BG_NG)
         ng_status.after(POLLING_TIME, self.reading)
+
+        if self._ng_count == 2:
+
+            if name == 'nt':
+                import winsound
+                winsound.Beep(2000, 1500)
+
+            else:
+                dev = dso.Dso()
+                dev.buzzer(10)
+                dev.read_message()
+                dev.close()
 
 
 def _polling_second_update(count: int) -> int:
@@ -201,10 +221,8 @@ def _polling_second_update(count: int) -> int:
 def _print_total_seconds() -> None:
 
     delta = datetime.now() - start_time
-    if delta.seconds % 15 == 0 and delta.microseconds < 500000:
+    if delta.seconds % 60 == 0 and delta.microseconds < 500000:
         _logger.info("Running: %s -> %d", delta, len(gc.get_objects()))
-
-
 
 
 ctrl = Controller()

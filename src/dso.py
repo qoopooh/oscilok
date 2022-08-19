@@ -14,7 +14,6 @@ https://elinux.org/Das_Oszi_Protocol
 import argparse
 import os
 import time
-import warnings
 from array import array
 from datetime import datetime
 
@@ -236,8 +235,12 @@ To current time"""
         """Get settings data"""
 
         msg = self._read_expect(command=0x81)
-        if not msg or msg.command != 0x81:
-            warnings.warn('No settings response: {}'.format(msg))
+        if not msg:
+            raise SampleLostError()
+
+        if msg.command != 0x81:
+            _logger.info('No settings response: {}'.format(msg))
+            raise SampleLostError()
 
         return msg.data
 
