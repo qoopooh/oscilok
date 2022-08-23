@@ -15,15 +15,21 @@ def setup_log(name=''):
 
     logger = logging.getLogger('oscilok.{}'.format(name))
     logger.setLevel(logging.DEBUG)
+    fmt = '%(asctime)s %(levelname)s:%(name)s:%(message)s'
+    formatter = logging.Formatter(fmt)
+
     filename = os.getenv('OSCILOK_LOG_FILENAME')
-    formatter = logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s')
+    if not filename:
+        filename = _default_log()
 
     try:
-        handler = handlers.TimedRotatingFileHandler(filename, when='D', interval=7, backupCount=5)
+        handler = handlers.TimedRotatingFileHandler(
+                filename, when='D', interval=7, backupCount=5)
         handler.setLevel(logging.INFO)
         handler.setFormatter(formatter)
 
-        err = handlers.RotatingFileHandler(_err_filename(filename), maxBytes=1000000, backupCount=2)
+        err = handlers.RotatingFileHandler(
+                _err_filename(filename), maxBytes=1000000, backupCount=2)
         err.setLevel(logging.ERROR)
         err.setFormatter(formatter)
 
@@ -39,6 +45,17 @@ def setup_log(name=''):
         logger.addHandler(handler)
 
     return logger
+
+
+def _default_log():
+    """Create local log folder"""
+
+    home = os.path.expanduser("~")
+    log_folder = os.path.join(home, '.oscilok', 'log')
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
+
+    return os.path.join(log_folder, 'oscilok.log')
 
 
 def _err_filename(filename: str) -> str:

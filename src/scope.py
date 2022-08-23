@@ -8,8 +8,6 @@ from array import array
 from datetime import datetime
 from pprint import pprint
 
-#import usb
-
 import dso
 import log
 import settings
@@ -19,18 +17,19 @@ CH1 = 0x01
 CH2 = 0x02
 
 PARSER = argparse.ArgumentParser()
-PARSER.add_argument('-a', '--alarm', help='alarm with buzzer', action='store_true')
+PARSER.add_argument('-a', '--alarm', help='buzzer alarm', action='store_true')
 PARSER.add_argument('-c', '--channel', type=int,
-    help='Read a channel (1 - CH1, 2 - CH2)',
-    default=CH1,
-    choices=[CH1, CH2])
-PARSER.add_argument('-d', '--dual', help='Read both channels', action='store_true')
-PARSER.add_argument('-s', '--settings', help='Get settings', action='store_true')
+                    help='Read a channel (1 - CH1, 2 - CH2)',
+                    default=CH1,
+                    choices=[CH1, CH2])
+PARSER.add_argument('-d', '--dual', help='Read all', action='store_true')
+PARSER.add_argument('-s', '--sett', help='Get settings', action='store_true')
 PARSER.add_argument('-v', '--verbose', help='verbose', action='store_true')
 
 
 class OscilloscopeNotFoundError(Exception):
     """Device Not Found"""
+
 
 class OscilloscopeError(Exception):
     """Some thing wrong with device"""
@@ -44,21 +43,25 @@ class Scope:
     _settings: settings.Settings = None
 
     def __init__(self, verbose=False) -> None:
+
         self._verbose = verbose
-        self._dso = dso.Dso(verbose)
 
+    def show_measure(self) -> None:
+        """Show measure data on Oscilloscope"""
 
-    def alarm(self) -> None:
+        dev = self._get_dev()
+        dev.keypress_trigger(dso.Key.MEASURE)
+
+    def alarm(self, delay: int = 1) -> None:
         """Alarm with buzzer"""
 
         dev = self._get_dev()
-        dev.buzzer(1)
+        dev.buzzer(delay)
         msg = dev.read_message()
         if self._verbose:
             print(msg)
 
-
-    def dual(self) -> list: # waveform.Wave
+    def dual(self) -> list:  # waveform.Wave
         """Read dual channel"""
 
         out = []
@@ -67,7 +70,6 @@ class Scope:
             out.append(data)
 
         return out
-
 
     def read(self, channel: int) -> waveform.Wave:
         """Read a single channel"""
@@ -82,7 +84,7 @@ class Scope:
         dev.sample(chan)
         data, resp = dev.get_sample()
         if resp != chan:
-            _logger.warning("wrong chan %d -> %d", chan, resp)
+            _logger.warning("wrong chan %d -> %d (%d)", chan, resp, len(data))
             data, resp = dev.get_sample()
             if resp != chan:
                 _logger.warning("wrong chan again %d -> %d", chan, resp)
@@ -90,13 +92,12 @@ class Scope:
         wave = waveform.get_wave_form(data)
         chx_key = 'CH{}_VOLTDIV'.format(channel)
         if self._settings \
-            and chx_key in self._settings \
-            and resp == chan:
+                and chx_key in self._settings \
+                and resp == chan:
             vdiv = self._settings[chx_key]
-            wave.vpp = wave.p2p * settings.VoltMULTIPLY[vdiv.name].value
+            wave.vpp = round(wave.p2p * settings.VoltMULTIPLY[vdiv].value, 4)
 
         return wave
-
 
     def dso_settings(self) -> dict:
         """Read DSO settings
@@ -105,13 +106,7 @@ class Scope:
 
         dev = self._get_dev()
 
-        # dev.lock_panel(True)
-        # msg = dev.read_message()
-        # print(msg)
-        # if msg.command != 0x92:
-        #     _logger.warning("Wrong lock resp: {}".format(msg))
-
-        dev.read_settings()
+        dev.settings_request()
         data = dev.get_settings()
         if len(data) != 213:
             return None
@@ -120,27 +115,24 @@ class Scope:
         self._settings = sett.copy()
         del self._settings['raw']
 
-        # time.sleep(.1)
-        # dev.lock_panel(False)
-        # msg = dev.read_message()
-        # if not msg or msg.command != 0x92:
-        #     _logger.warning("Wrong unlock resp: {}".format(msg))
-
         return sett
 
     def close(self) -> None:
         """Close device"""
 
+        _logger.info("closing %s", self._dso)
         if self._dso:
             self._dso.close()
             self._dso = None
-
+        self._settings = None
 
     def _get_dev(self):
         """Get DSO instance"""
 
         if not self._dso:
             self._dso = dso.Dso(self._verbose)
+
+        self._dso.setup()
 
         if not self._dso.is_available():
             _logger.info('OscilloscopeNotFoundError')
@@ -158,6 +150,9 @@ def _save_settings(data: array) -> None:
         outfile.writelines(["{}\n".format(dat) for dat in data])
 
 
+_logger = log.setup_log('scope')
+
+
 if __name__ == '__main__':
 
     ARGS = PARSER.parse_args()
@@ -172,7 +167,7 @@ if __name__ == '__main__':
     elif ARGS.alarm:
         DEV.alarm()
 
-    elif ARGS.settings:
+    elif ARGS.sett:
         OUT = DEV.dso_settings()
         _save_settings(OUT['raw'])
         print('dso_settings', OUT)
@@ -182,5 +177,3 @@ if __name__ == '__main__':
         print('channel', OUT)
 
     DEV.close()
-
-_logger = log.setup_log('scope')

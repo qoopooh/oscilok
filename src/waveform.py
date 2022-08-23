@@ -29,7 +29,7 @@ class Peak(Enum):
 class Wave:
     """Wave object"""
 
-    data: list = None # Dot
+    data: list = None   # Dot
     typ: WaveType = WaveType.UNKNOWN
     p2p: int = 0
     vpp: float = None
@@ -97,9 +97,7 @@ def get_wave_form(unsigned_data: array) -> Wave:
     """Get time and peak state"""
 
     data = _conv_sign(unsigned_data)
-    #print('signed_data', len(data), data[:30])
     data = _average(data)
-    #print('avg_data', len(data), data[:30])
     if len(data) == 0:
         return Wave(None, WaveType.UNKNOWN)
 
@@ -107,8 +105,6 @@ def get_wave_form(unsigned_data: array) -> Wave:
     margin = ((top - bottom) * PERCENT_TO_PEAK) / 100
     top_area = top - margin
     bottom_area = bottom + margin
-
-    #print("get_wave_form {}/{} / {}/{}".format(top, top_area, bottom_area, bottom))
 
     first_dat = data[0]
     dot = Dot(0, first_dat)
@@ -182,27 +178,29 @@ def _peak_to_peak(dots: list) -> int:
     vals = [dot.val for dot in dots]
     top, bottom = _get_top_bottom(vals)
 
-    return  abs(top - bottom)
+    return abs(top - bottom)
 
 
 def _is_sine_wave(dots: list) -> bool:
     """Check sine wave
-    dots start with TP_ST and TP_END should be appeared within 30% of the half wave
-    """
+dots start with TP_ST and TP_END should be appeared within 30% of the half wave
+"""
 
-    half_wave_time = dots[2].time - dots[0].time
-    top_end_time = int(half_wave_time * .35) + dots[0].time
+    top_start_time = dots[0].time
+    half_wave_time = dots[2].time - top_start_time
+    top_end_time = top_start_time + int(half_wave_time * .35)
 
     return dots[1].time < top_end_time
 
 
 def _is_square_wave(dots: list) -> bool:
     """Check square wave
-    dots start with TP_ST and TP_END should be appeared within 30% of the half wave
-    """
+dots start with TP_ST and TP_END should be appeared after 80% of the half wave
+"""
 
-    half_wave_time = dots[2].time - dots[0].time
-    top_end_time = (half_wave_time * .8) + dots[0].time
+    top_start_time = dots[0].time
+    half_wave_time = dots[2].time - top_start_time
+    top_end_time = top_start_time + (half_wave_time * .8)
 
     return top_end_time < dots[1].time
 
@@ -231,7 +229,7 @@ def _conv_sign(data: array) -> array:
     return out
 
 
-def _average(data: array, avg_len: int=16) -> array:
+def _average(data: array, avg_len: int = 16) -> array:
     """Make signal more smooth to avoid noise"""
 
     out = array(data.typecode)

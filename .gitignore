@@ -1,5 +1,12 @@
 # Test data
 *.dat
+*.log
+
+# Build
+*.deb
+*.rpm
+*.exe
+package/
 
 
 #### From github ####

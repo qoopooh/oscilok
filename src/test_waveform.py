@@ -37,7 +37,6 @@ class TestWaveFormMethods(unittest.TestCase):
         ]
         self.assertEqual(waveform._get_last_wave(inp), out)
 
-
     def test_sine_wave(self):
         """sine wave"""
 
@@ -50,7 +49,6 @@ class TestWaveFormMethods(unittest.TestCase):
 
         self.assertTrue(waveform._is_sine_wave(inp))
         self.assertFalse(waveform._is_square_wave(inp))
-
 
     def test_square_wave(self):
         """square wave"""

@@ -1,9 +1,12 @@
 ![oscilok_logo](https://github.com/qoopooh/oscilok/blob/main/img/oscilok_logo.png?raw=true)
+
 # oscilok
+
 Processing data from oscilloscope
 
 
 ## Criteria
+
 We will test the wire harness (DUT) and measuring 2 signals:
 * Sine Wave
 * Square Wave
@@ -21,6 +24,7 @@ NG: One is positive amplitude, the other is negative
 
 
 ## Oscilloscope setup
+
 <img src="https://github.com/qoopooh/oscilok/blob/main/img/16572956068466.jpg?raw=true" alt="ng single" width="300"/>
 
 1. Square wave 5 V/DIV
@@ -30,6 +34,7 @@ NG: One is positive amplitude, the other is negative
 -----
 
 ## Window setup
+
 We use old machine to run the program with oscilloscope. So it is Windows 7 32 bits :D
 
 To run the program, we gonna use old python 3.7.6 to make sure that all windows 7 machines can run it.
@@ -38,6 +43,7 @@ Let's start with [Python 3.7.6](https://www.python.org/ftp/python/3.7.6/python-3
 <img src="https://raw.githubusercontent.com/qoopooh/oscilok/main/img/python376-on-win7.png" alt="Setup python on windows 7" width="360"/>
 
 ### Oscilloscope driver
+
 ~~We test with [Hantek MSO5102D](http://www.hantek.com/products/detail/10), you can download driver from [official website](http://www.hantek.com/Product/MSO5000D/MSO5000D_Driver.zip)~~.
 
 ~~For python, please install [libusb-win32-devel-filter-1.2.6.0.exe](https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/libusb-win32-devel-filter-1.2.6.0.exe/download)~~
@@ -45,16 +51,31 @@ Let's start with [Python 3.7.6](https://www.python.org/ftp/python/3.7.6/python-3
 Use [Zadig](https://zadig.akeo.ie/) and select [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
 
 ### Build binary
-TODO: Still cannot debug error after build
-> pyinstaller --onefile --noconfirm --noconsole --icon=img\favicon.ico --exclude-module _bootlocale --name oscilok src\main.pyw
+
+> pyinstaller --name oscilok --windowed src/main.pyw --icon=img\favicon.ico --add-data="img\;img" --noconfirm
+
+You might need to copy *C:\Windows\System32\libusb0.dll* to dist\oscilok folder.
+
+### InstallForge
+
+* Product Name: Oscilok
+* Product Version: 0.1.x
+* Add all files in dist\oscilok folder
+* Add all folders in dist\oscilok folder
+* Check *Include Uninstaller*
+* Add both shortcuts: Desktop, Startmenu
+* Target File: *\<InstallPath>\oscilok.exe*
+* Allow user to change the start menu shortcut path
+* Setup File: C:\Users\user\git\oscilok\oscilok-installer.exe
 
 -----
 
 ## Linux setup
-The new python 3.10 does not include tkinter, we have addtional for install GUI toolkit.
+
+The new python 3.10 does not include tkinter, we have to install addtional GUI toolkit.
 > sudo apt install python3-tk
 
-You have to copy file 50-myusb.rules to ```/etc/udev/rules.d/```. After that please reload the rules.
+You have to copy file 50-myusb.rules to ``/etc/udev/rules.d/``. After that please reload the rules.
 ```sh
 sudo udevadm control -R
 sudo udevadm trigger
@@ -67,8 +88,12 @@ newgrp plugdev # reload plugdev group
 ```
 
 ### Create app icon
+
 Modify path of this project in oscilok.desktop and run the command below:
 > desktop-file-install --dir=$HOME/.local/share/applications oscilok.desktop
 
 ### Build binary
-> pyinstaller --onefile --noconfirm --noconsole --exclude-module _bootlocale --name oscilok src/main.pyw
+
+> pyinstaller --name oscilok --windowed src/main.pyw --add-data="img/:img" --noconfirm
+
+Then run ```./build_linux.sh deb```

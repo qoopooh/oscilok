@@ -2,8 +2,8 @@
 Version=1.0
 Name=Oscilok
 Comment=Cable Tester
-Icon=/home/user/git/oscilok/img/oscilok_logo.png
-Exec=python /home/user/git/oscilok/src/main.pyw
+Icon=oscilok
+Exec=/opt/oscilok/oscilok
 Terminal=false
 Type=Application
 Categories=Utility

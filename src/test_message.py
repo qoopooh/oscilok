@@ -22,7 +22,6 @@ class TestStringMethods(unittest.TestCase):
         msg = message.build(pkt)
         self.assertTrue(msg.checksum)
 
-
     def test_screenshot_cmd(self):
         """Test screenshot command"""
 
@@ -34,7 +33,6 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(msg.command, 0x20)
         self.assertEqual(msg.data, None)
         self.assertTrue(msg.checksum)
-
 
     def test_start_acquisition_cmd(self):
         """Start DSO acquisition command"""
@@ -50,7 +48,6 @@ class TestStringMethods(unittest.TestCase):
         self.assertTrue(msg.checksum)
         self.assertFalse(msg.response)
 
-
     def test_stop_acquisition_cmd(self):
         """Stop DSO acquisition command"""
 
@@ -60,7 +57,6 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(msg.data, array('B', [1]))
         self.assertTrue(msg.checksum)
         self.assertFalse(msg.response)
-
 
     def test_lock_control_panel_cmd(self):
         """Lock control panel command"""
@@ -73,7 +69,6 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(msg.data, array('B', [1]))
         self.assertTrue(msg.checksum)
 
-
     def test_unlock_control_panel_cmd(self):
         """Unlock control panel command"""
 
@@ -82,7 +77,6 @@ class TestStringMethods(unittest.TestCase):
 
         self.assertEqual(msg.data, array('B', [0]))
         self.assertTrue(msg.checksum)
-
 
     def test_keypress_autoset_cmd(self):
         """0x13 Keypress trigger: autoset"""
@@ -96,7 +90,6 @@ class TestStringMethods(unittest.TestCase):
         self.assertFalse(msg.response)
         self.assertEqual(msg.data, array('B', [0x11, 0x01]))
 
-
     def test_create_screenshot_pkt(self):
         """Screenshot packet"""
 
@@ -106,7 +99,7 @@ class TestStringMethods(unittest.TestCase):
             0x20
         )
         self.assertEqual(message.create_packet(msg),
-            array('B', [0x53, 0x02, 0x00, 0x20, 0x75]))
+                         array('B', [0x53, 0x02, 0x00, 0x20, 0x75]))
 
 
 if __name__ == '__main__':

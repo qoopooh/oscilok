@@ -6,21 +6,24 @@ from dataclasses import dataclass
 DEBUG_MESSAGE_MARKER = 0x43
 NORMAL_MESSAGE_MARKER = 0x53
 
+SETTINGS_RESPONSE_CMD = 0x81
+
 SAMPLE_RESPONSE_CMD = 0x82
 SAMPLE_LEN_SUBCMD   = 0x00
 SAMPLE_DATA_SUBCMD  = 0x01
 SAMPLE_SUM_SUBCMD   = 0x02
-SAMPLE_STOP_SUBCMD  = 0x03 # Errors or STOP mode
+SAMPLE_STOP_SUBCMD  = 0x03  # Errors or STOP mode
 
 NORMAL_SUBCOMMAND = [
-    0x02, # Read sample data
+    0x02,   # Read sample data
     SAMPLE_RESPONSE_CMD,
-    0x10, # Read file
+    0x10,   # Read file
     0x90,
-    0x12, # Lock/unlock control panel, start/stop acquisition
+    0x12,   # Lock/unlock control panel, start/stop acquisition
     0x92,
-    0xA0, # screenshot response
-] # The command with subcommand
+    0xA0,   # screenshot response
+]   # The command with subcommand
+
 
 @dataclass
 class Message:
@@ -32,7 +35,7 @@ class Message:
     subcommand: int = -1
     data: array = None
     checksum: bool = False
-    response: bool = False # response from DSO
+    response: bool = False  # response from DSO
 
 
 def build(pkt: array) -> Message:

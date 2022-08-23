@@ -3,9 +3,28 @@ from array import array
 from enum import Enum
 
 
-class VoltDIV(Enum):
-    """VOLTS / DIV"""
+class VoltDIVx1(Enum):
+    """VOLTS / DIV x1"""
 
+    # Probe 1x
+    MV2     = 0
+    MV5     = 1
+    MV10    = 2
+    MV20    = 3
+    MV50    = 4
+    MV100   = 5
+    MV200   = 6
+    MV500   = 7
+    V1      = 8
+    V2      = 9
+    V5      = 10
+    # V10   = 11 # got 0 instead
+
+
+class VoltDIVx10(Enum):
+    """VOLTS / DIV x10"""
+
+    # Probe 10x
     MV20    = 0
     MV50    = 1
     MV100   = 2
@@ -17,12 +36,30 @@ class VoltDIV(Enum):
     V10     = 8
     V20     = 9
     V50     = 10
-    #V100    = 11 # got 0 instead
+    # V100  = 11 # got 0 instead
+
+
+class VoltDIVx100(Enum):
+    """VOLTS / DIV x100"""
+
+    # Probe 100x
+    MV200   = 0
+    MV500   = 1
+    V1      = 2
+    V2      = 3
+    V5      = 4
+    V10     = 5
+    V20     = 6
+    V50     = 7
+    V100    = 8
 
 
 class VoltMULTIPLY(Enum):
     """VOLTS / DIV"""
 
+    MV2     = 0.000114
+    MV5     = 0.000286
+    MV10    = 0.000572
     MV20    = 0.001144
     MV50    = 0.002288
     MV100   = 0.00444
@@ -34,11 +71,14 @@ class VoltMULTIPLY(Enum):
     V10     = 0.43306
     V20     = 0.87619
     V50     = 2.33333
+    V100    = 4.66666
 
 
 class SecDIV(Enum):
     """SEC / DIV"""
 
+    NS2     = 0
+    NS4     = 1
     NS8     = 2
     NS20    = 3
     NS40    = 4
@@ -69,8 +109,13 @@ class Settings(Enum):
     """Concerned settings"""
 
     CH1_VOLTDIV = 1     # Line 2
+    CH1_PROBE   = 5     # Line 6
     CH2_VOLTDIV = 11    # Line 12
-    SECDEV = 156        # Line 156, 157
+    CH2_PROBE   = 15    # Line 16
+    SECDEV      = 156   # Line 156, 157 Window time base
+
+
+PROBES = [VoltDIVx1, VoltDIVx10, VoltDIVx100]
 
 
 def create(data: array) -> dict:
@@ -78,11 +123,17 @@ def create(data: array) -> dict:
 
     out = {
         "raw": data,
+        Settings.SECDEV.name: SecDIV(data[Settings.SECDEV.value]),
+        Settings.CH1_PROBE.name: PROBES[data[Settings.CH1_PROBE.value]],
+        Settings.CH2_PROBE.name: PROBES[data[Settings.CH2_PROBE.value]],
     }
-    for member in Settings:
-        if member == Settings.SECDEV:
-            out[member.name] = SecDIV(data[member.value])
-        else:
-            out[member.name] = VoltDIV(data[member.value])
+
+    for channel in range(1, 3):
+
+        voltdiv = 'CH{}_VOLTDIV'.format(channel)
+        probe = 'CH{}_PROBE'.format(channel)
+
+        val = out[probe](data[Settings[voltdiv].value])
+        out[voltdiv] = val.name
 
     return out
