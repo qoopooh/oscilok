@@ -22,7 +22,8 @@ if os.name == 'nt':
 
 
 MIN_VOLT_P2P = 2.5      # volts
-POLLING_TIME = 500      # in millisecond
+POLLING_TIME = 500      # in milliseconds
+OK_SINGLE_TIME = 1000   # in milliseconds
 SINGLE_READ_TRY_COUNT = 6
 
 
@@ -54,6 +55,7 @@ class Controller:
             self.polling = False
             self._cb['ng'](NgState.STOP)
             self._cb['reading']("Start")
+            self._cb['disable_buttons'](False)
             self._scope.close()
             return
 
@@ -222,20 +224,21 @@ class Controller:
         self._ng_count = 0
 
         if self._single_read_try_count > 0:
-            self.toggle()
-            self.beep(True)
+            self._cb['ng'](NgState.OK).after(OK_SINGLE_TIME, self.toggle)
             msg = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self._single_read_try_count = 0
+
+            self.beep(True)
+
         else:
-            update_time = _polling_second_update(self._ok_count)
-            msg = "OK time: {} seconds".format(update_time)
+            if self._ok_count == 1:
+                self.beep(True)
+
+            cnt = _polling_second_update(self._ok_count)
+            msg = "OK time: {} seconds".format(cnt)
+            self._cb['ng'](NgState.OK).after(POLLING_TIME, self._reading)
 
         self._cb['device'](msg)
-        self._cb['ng'](NgState.OK).after(POLLING_TIME, self._reading)
-        self._cb['disable_buttons'](False)
-
-        if self._ok_count == 1:
-            self.beep(True)
 
     def _ng(self) -> None:
         """Failed result"""
@@ -245,17 +248,18 @@ class Controller:
 
         if self._single_read_try_count > 0:
             self.toggle()
-            self.beep(False)
             self._single_read_try_count = 0
+
+            self.beep(False)
+
         else:
+            if self._ng_count == 1:
+                self.beep(False)
+
             cnt = _polling_second_update(self._ng_count)
             self._cb['device']("NG time: {} seconds".format(cnt))
         self._cb['ng'](NgState.NG).after(POLLING_TIME, self._reading)
-        self._cb['disable_buttons'](False)
 
-        if self._ng_count == 1:
-
-            self.beep(False)
 
     def beep(self, result_ok=True) -> None:
         """Create beep sound"""
