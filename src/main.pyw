@@ -5,12 +5,13 @@ from os import path
 
 import tkinter as tk
 from tkinter import ttk  # submodules
+from pynput import keyboard
 
 import controller
 from ng_state import NgState
 
 
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 
 BG_NG = 'red'
 BG_OK = 'green'
@@ -101,6 +102,21 @@ def _ng_ok():
     ng_status.config(text="OK", background=BG_OK)
 
 
+def on_press(key):
+    """Listen keyboard pressed"""
+
+    if key == keyboard.Key.media_volume_up:
+        ctrl.single()
+    else:
+        print('on_press {}'.format(key))
+
+
+listener = keyboard.Listener(
+        on_press=on_press,
+        on_release=None)
+listener.start()
+
+
 ctrl = controller.Controller()
 ctrl.set_callbacks({
     "ng": set_ng_status,
@@ -143,6 +159,7 @@ start_button.grid(row=2, column=0, padx=20, pady=5,
                   sticky=tk.N+tk.S+tk.W+tk.E)
 # start_button.focus_set()
 # root.bind("<Control-s>", ctrl.toggle)
+root.bind("<Return>", (lambda event: ctrl.single()))
 
 single_button = ttk.Button(root, text="Single Read", command=ctrl.single)
 single_button.grid(row=3, column=0, padx=20, pady=5,
