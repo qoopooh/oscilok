@@ -24,11 +24,18 @@ NG: One is positive amplitude, the other is negative
 
 
 ## Program Installation
-You can download latest version [here (v0.1.6)](https://www.dropbox.com/s/k072cyph5gysjtp/oscilok-0.1.6.exe?dl=0)
+You can download latest version [here (v0.1.6)](https://www.dropbox.com/s/1ddrl8ck9bxkqko/oscilok-0.1.6.zip?dl=0)
 
+### Windows Device Driver
 Oscilloscope also need to install windows driver.
+On the new machine, oscilloscope will show on Device Manager as ``DSO Measurement Device``.
 
-Please use [Zadig](https://zadig.akeo.ie/) and select [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
+Please use [Zadig](https://zadig.akeo.ie/):
+* Connect oscilloscope to PC
+* Go to menu ``Options -> List All Devices``
+* On dropdown list, choose ``Gadget Serial v2.4``
+* On Driver menu, choose [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
+* Press ``Replace Driver`` button and wait for a while
 
 
 ## Oscilloscope setup
