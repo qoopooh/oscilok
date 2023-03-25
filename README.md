@@ -23,6 +23,20 @@ OK: Both have peaks in the same direction.
 NG: One is positive amplitude, the other is negative
 
 
+## Program Installation
+You can download latest version [here (v0.1.6)](https://www.dropbox.com/s/1ddrl8ck9bxkqko/oscilok-0.1.6.zip?dl=0)
+
+### Windows Device Driver
+Oscilloscope also need to install windows driver.
+
+Please use [Zadig](https://zadig.akeo.ie/):
+* Connect oscilloscope to PC
+* Go to menu ``Options -> List All Devices``
+* On dropdown list, choose ``Gadget Serial v2.4``
+* On Driver menu, choose [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
+* Press ``Replace Driver`` button and wait for a while
+* Check on device manager, you will see ``libusb-win32 devices -> Gadget Serial v2.4``
+
 ## Oscilloscope setup
 
 <img src="https://github.com/qoopooh/oscilok/blob/main/img/16572956068466.jpg?raw=true" alt="ng single" width="300"/>
@@ -31,7 +45,11 @@ NG: One is positive amplitude, the other is negative
 2. Sine wave 2 V/DIV
 3. Time 400 us/DIV
 
+
 -----
+
+
+# Software Development
 
 ## Window setup
 
@@ -41,14 +59,6 @@ To run the program, we gonna use old python 3.7.6 to make sure that all windows 
 
 Let's start with [Python 3.7.6](https://www.python.org/ftp/python/3.7.6/python-3.7.6.exe) (or [64 bits](https://www.python.org/ftp/python/3.7.6/python-3.7.6-amd64.exe)). After installation on the new fresh Win7 machine I got the error "The program can't start because api-ms-win-crt-runtime-l1-1-0.dll is missing". Then we have to install [Visual C++ Redistributable for Visual Studio 2015 (32-bit)](https://www.microsoft.com/en-us/download/details.aspx?id=48145) and you will get the python on Command Prompt.
 <img src="https://raw.githubusercontent.com/qoopooh/oscilok/main/img/python376-on-win7.png" alt="Setup python on windows 7" width="360"/>
-
-### Oscilloscope driver
-
-~~We test with [Hantek MSO5102D](http://www.hantek.com/products/detail/10), you can download driver from [official website](http://www.hantek.com/Product/MSO5000D/MSO5000D_Driver.zip)~~.
-
-~~For python, please install [libusb-win32-devel-filter-1.2.6.0.exe](https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/libusb-win32-devel-filter-1.2.6.0.exe/download)~~
-
-Use [Zadig](https://zadig.akeo.ie/) and select [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
 
 ### Build binary
 
