@@ -28,7 +28,6 @@ You can download latest version [here (v0.1.6)](https://www.dropbox.com/s/1ddrl8
 
 ### Windows Device Driver
 Oscilloscope also need to install windows driver.
-On the new machine, oscilloscope will show on Device Manager as ``DSO Measurement Device``.
 
 Please use [Zadig](https://zadig.akeo.ie/):
 * Connect oscilloscope to PC
@@ -36,7 +35,7 @@ Please use [Zadig](https://zadig.akeo.ie/):
 * On dropdown list, choose ``Gadget Serial v2.4``
 * On Driver menu, choose [libusb-win32](https://sourceforge.net/p/libusb-win32/wiki/Home/)
 * Press ``Replace Driver`` button and wait for a while
-
+* Check on device manager, you will see ``libusb-win32 devices -> Gadget Serial v2.4``
 
 ## Oscilloscope setup
 
